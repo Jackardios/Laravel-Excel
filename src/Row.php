@@ -52,6 +52,11 @@ class Row implements ArrayAccess
         return $this->row;
     }
 
+    public function getHeadingRow(): array
+    {
+        return $this->headingRow;
+    }
+
     /**
      * @param  null  $nullValue
      * @param  bool  $calculateFormulas
