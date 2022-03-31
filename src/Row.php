@@ -60,7 +60,7 @@ class Row implements ArrayAccess
     /**
      * @param string $startColumn
      * @param string|null $endColumn
-     * @return Cell[]
+     * @return array<Cell|Cell[]>
      */
     public function getCells(string $startColumn = 'A', ?string $endColumn = null): array
     {
@@ -102,7 +102,7 @@ class Row implements ArrayAccess
      * @param mixed $nullValue
      * @param bool $calculateFormulas
      * @param bool $formatData
-     * @param  string|null  $endColumn
+     * @param string|null $endColumn
      * @return array
      */
     public function toArray($nullValue = null, bool $calculateFormulas = false, bool $formatData = true, ?string $endColumn = null): ?array
