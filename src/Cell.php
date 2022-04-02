@@ -47,12 +47,12 @@ class Cell
     }
 
     /**
-     * @param  null  $nullValue
-     * @param  bool  $calculateFormulas
-     * @param  bool  $formatData
+     * @param mixed $nullValue
+     * @param bool $calculateFormulas
+     * @param bool $formatData
      * @return mixed
      */
-    public function getValue($nullValue = null, $calculateFormulas = false, $formatData = true)
+    public function getValue($nullValue = null, bool $calculateFormulas = false, bool $formatData = true)
     {
         $value = $nullValue;
         if ($this->cell->getValue() !== null) {
