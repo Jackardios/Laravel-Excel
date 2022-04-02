@@ -63,32 +63,58 @@ class Row implements ArrayAccess
     }
 
     /**
+     * Execute a callback over each cell.
+     *
+     * @param callable $callback
      * @param string $startColumn
      * @param string|null $endColumn
-     * @return array<Cell|Cell[]>
+     *
+     * @return $this
      */
-    public function getCells(string $startColumn = 'A', ?string $endColumn = null): array
+    public function each(callable $callback, string $startColumn = 'A', ?string $endColumn = null)
     {
-        $cells = [];
-
         $i = 0;
         foreach ($this->row->getCellIterator($startColumn, $endColumn) as $cell) {
             $cell = new Cell($cell);
+            $heading = $this->headingRow[$i] ?? null;
+            $headerIsGrouped = $this->headerIsGrouped[$i] ?? null;
 
-            if (isset($this->headingRow[$i])) {
-                if ($this->headerIsGrouped[$i]) {
-                    $cells[$this->headingRow[$i]][] = $cell;
-                } else {
-                    $cells[$this->headingRow[$i]] = $cell;
-                }
-            } else {
-                $cells[] = $cell;
+            if ($callback($cell, $heading, $headerIsGrouped) === false) {
+                break;
             }
 
             $i++;
         }
 
-        return $cells;
+        return $this;
+    }
+
+    /**
+     * Execute a callback over each cell.
+     *
+     * @param callable $callback
+     * @param string $startColumn
+     * @param string|null $endColumn
+     *
+     * @return array
+     */
+    public function map(callable $callback, string $startColumn = 'A', ?string $endColumn = null)
+    {
+        $mapped = [];
+        $this->each(function(Cell $cell, $heading, $headingIsGrouped) use (&$mapped, &$callback) {
+            $cell = $callback($cell, $heading, $headingIsGrouped);
+            if ($heading) {
+                if ($headingIsGrouped) {
+                    $mapped[$heading][] = $cell;
+                } else {
+                    $mapped[$heading] = $cell;
+                }
+            } else {
+                $mapped[] = $cell;
+            }
+        }, $startColumn, $endColumn);
+
+        return $mapped;
     }
 
     /**
@@ -118,7 +144,9 @@ class Row implements ArrayAccess
             return $this->rowCache;
         }
 
-        $values = $this->getCellsValues($this->getCells('A', $endColumn), $nullValue, $calculateFormulas, $formatData);
+        $values = $this->map(function(Cell $cell) use ($nullValue, $calculateFormulas, $formatData) {
+            return $cell->getValue($nullValue, $calculateFormulas, $formatData);
+        }, 'A', $endColumn);
 
         if (isset($this->preparationCallback)) {
             $values = ($this->preparationCallback)($values, $this->row->getRowIndex());
@@ -131,25 +159,9 @@ class Row implements ArrayAccess
     }
 
     /**
-     * @param array<Cell|Cell[]> $cells
-     * @param mixed $nullValue
      * @param bool $calculateFormulas
      * @param bool $formatData
-     * @return array
-     */
-    protected function getCellsValues(array $cells, $nullValue = null, bool $calculateFormulas = false, bool $formatData = true): array
-    {
-        return array_map(function($cell) use ($nullValue, $calculateFormulas, $formatData) {
-            if (is_array($cell)) {
-                return $this->getCellsValues($cell, $nullValue, $calculateFormulas, $formatData);
-            }
-            return $cell->getValue($nullValue, $calculateFormulas, $formatData);
-        }, $cells);
-    }
-
-    /**
-     * @param bool $calculateFormulas
-     * @param  string|null  $endColumn
+     * @param string|null $endColumn
      * @return bool
      */
     public function isEmpty(bool $calculateFormulas = false, bool $formatData = true, ?string $endColumn = null): bool
