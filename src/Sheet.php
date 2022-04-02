@@ -286,7 +286,6 @@ class Sheet
         if ($import instanceof OnEachRow) {
             $headingRow          = HeadingRowExtractor::extract($this->worksheet, $import);
             $headerIsGrouped     = HeadingRowExtractor::extractGrouping($headingRow, $import);
-            $endColumn           = $import instanceof WithColumnLimit ? $import->endColumn() : null;
             $preparationCallback = $this->getPreparationCallback($import);
 
             foreach ($this->worksheet->getRowIterator()->resetStart($startRow ?? 1) as $row) {
@@ -296,9 +295,9 @@ class Sheet
                     $sheetRow->setPreparationCallback($preparationCallback);
                 }
 
-                if (!$import instanceof SkipsEmptyRows || ($import instanceof SkipsEmptyRows && !$sheetRow->isEmpty($calculatesFormulas))) {
+                if (!$import instanceof SkipsEmptyRows || ($import instanceof SkipsEmptyRows && !$sheetRow->isEmpty($calculatesFormulas, $formatData, $endColumn))) {
                     if ($import instanceof WithValidation) {
-                        $toValidate = [$sheetRow->getIndex() => $sheetRow->toArray(null, $import instanceof WithCalculatedFormulas, $import instanceof WithFormatData, $endColumn)];
+                        $toValidate = [$sheetRow->getIndex() => $sheetRow->toArray(null, $calculatesFormulas, $formatData, $endColumn)];
 
                         try {
                             app(RowValidator::class)->validate($toValidate, $import);
@@ -346,7 +345,7 @@ class Sheet
         foreach ($this->worksheet->getRowIterator($startRow, $endRow) as $index => $row) {
             $row = new Row($row, $headingRow, $headerIsGrouped);
 
-            if ($import instanceof SkipsEmptyRows && $row->isEmpty($calculateFormulas, $endColumn)) {
+            if ($import instanceof SkipsEmptyRows && $row->isEmpty($calculateFormulas, $formatData, $endColumn)) {
                 continue;
             }
 

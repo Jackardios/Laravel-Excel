@@ -33,6 +33,11 @@ class Row implements ArrayAccess
     protected $rowCache;
 
     /**
+     * @var string
+     */
+    protected $rowCacheKey;
+
+    /**
      * @param  SpreadsheetRow  $row
      * @param  array  $headingRow
      * @param  array  $headerIsGrouped
@@ -107,7 +112,9 @@ class Row implements ArrayAccess
      */
     public function toArray($nullValue = null, bool $calculateFormulas = false, bool $formatData = true, ?string $endColumn = null): ?array
     {
-        if (is_array($this->rowCache)) {
+        $serializedArguments = serialize(func_get_args());
+
+        if ($serializedArguments === $this->rowCacheKey && is_array($this->rowCache)) {
             return $this->rowCache;
         }
 
@@ -117,13 +124,14 @@ class Row implements ArrayAccess
             $values = ($this->preparationCallback)($values, $this->row->getRowIndex());
         }
 
+        $this->rowCacheKey = $serializedArguments;
         $this->rowCache = $values;
 
         return $values;
     }
 
     /**
-     * @param array $cells
+     * @param array<Cell|Cell[]> $cells
      * @param mixed $nullValue
      * @param bool $calculateFormulas
      * @param bool $formatData
@@ -144,9 +152,9 @@ class Row implements ArrayAccess
      * @param  string|null  $endColumn
      * @return bool
      */
-    public function isEmpty(bool $calculateFormulas = false, ?string $endColumn = null): bool
+    public function isEmpty(bool $calculateFormulas = false, bool $formatData = true, ?string $endColumn = null): bool
     {
-        return count(array_filter($this->toArray(null, $calculateFormulas, false, $endColumn))) === 0;
+        return count(array_filter($this->toArray(null, $calculateFormulas, $formatData, $endColumn))) === 0;
     }
 
     /**
@@ -167,16 +175,21 @@ class Row implements ArrayAccess
         $this->preparationCallback = $preparationCallback;
     }
 
+    protected function getCached(): ?array
+    {
+        return $this->rowCache ?: $this->toArray();
+    }
+
     #[\ReturnTypeWillChange]
     public function offsetExists($offset)
     {
-        return isset(($this->toArray())[$offset]);
+        return isset(($this->getCached())[$offset]);
     }
 
     #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
-        return ($this->toArray())[$offset];
+        return ($this->getCached())[$offset];
     }
 
     #[\ReturnTypeWillChange]
